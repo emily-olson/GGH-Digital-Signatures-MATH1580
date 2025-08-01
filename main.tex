@@ -1,0 +1,649 @@
+\documentclass[11pt,reqno]{amsart}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%								Packages									         %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage[T1]{fontenc}
+
+\usepackage{amsmath}							
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amscd}
+\usepackage{amsfonts}
+\usepackage{stmaryrd}
+\usepackage{algorithm, algorithmic}
+\usepackage{ wasysym }
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{euler}
+\renewcommand{\rmdefault}{pplx}
+\usepackage{extarrows}
+\usepackage[colorlinks, linktocpage, citecolor = red, linkcolor = blue]{hyperref}
+\usepackage{color}
+\usepackage{tikz}									
+\usepackage{fullpage}
+\usepackage[shortlabels]{enumitem}
+\usepackage{caption} 
+\usepackage{float}
+
+\usepackage{subcaption}
+\usepackage[left=10mm,right=10mm]{geometry}
+\usepackage{geometry}
+\geometry{
+  bottom=10mm
+}
+\usepackage{tikz}
+\usetikzlibrary{shapes,backgrounds,shapes,positioning,petri,topaths}
+
+\usepackage{pgfplots}
+\usepackage{subfigure}
+\pgfplotsset{compat=1.15}
+\usepackage{mathrsfs}
+\usetikzlibrary{arrows}
+\pagestyle{empty}
+
+\linespread{1.1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%								Theorems 								         %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newtheorem*{maintheorem}{Main Theorem}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary} 
+\newtheorem{conjecture}[theorem]{Conjecture} 
+
+\theoremstyle{definition}							
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{question}[theorem]{Question}
+\newtheorem{example}[theorem]{Example}
+\newtheorem*{ogexample}{Original Example}
+\newtheorem{construction}[theorem]{Construction}
+
+
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{remarks}[theorem]{Remarks}
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%								Operators									         %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\madeline}[1]{{\color{purple} \sf  Madeline: [#1]}}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{F}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\nul}{\mathrm{null}}
+\newcommand{\range}{\mathrm{range}}
+\newcommand{\spa}{\mathrm{span}}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                          Title                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{GGH Digital Signatures and Transcript Analysis}
+\author[]{Emily Olson}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+
+\setcounter{tocdepth}{1}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
+
+The GGH digital signature scheme, named after its creators Goldreich, Goldwasser, and Halevi, is a cryptographic signing scheme built on the hardness of lattice problems, particularly the closest vector problem (CVP). It operates by generating a private and public basis pair for a lattice, and signatures are produced by solving the CVP using the private basis. Verification involves checking certain properties of the signature against the public basis \cite{textbook}. This scheme is known for its resistance to quantum attacks; however, it is limited by requiring very large key sizes and being vulnerable to transcript analysis - the idea that a sufficiently large sample of signatures reveals something about the private key. Rejection sampling, adopted from statistics and applied the signature generation, is a remedy for transcript analysis and will be explored at the end of this paper. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Scheme}
+\label{sec1}
+
+We assume the reader is familiar with the fundamentals of lattices and the CVP, as well as their application to the GGH public key cryptosystem. We also assume familiarity with Babai's rounding algorithm, necessary to solve (approximately) the CVP. The GGH signing scheme is as follows, explained using the characters Samantha (the signer) and Victor (the verifier) and following the argument outlined in \cite[Chapter 7.12]{textbook}.
+
+Given a lattice $\mathcal{L}\subseteq V^n$, Samantha has a private, reasonably "good" basis $\mathcal{B_{\text{priv}}}$, with vectors $\mathbf{v_1, v_2, ... , v_n}$ that are short and close to orthogonal. To find her good basis, she chooses a high Hadamard ratio \cite[Remark 7.27]{textbook} bound and randomly generates bases until one satisfies the bound. Samantha then forms a bad public basis $\mathcal{B_{\text{pub}}} = \mathbf{w_1, w_2, ... , w_n}$ such that $\mathcal{B_{\text{pub}}} = A\mathcal{B_{\text{priv}}}$. She forms the change of basis matrix $A$ by performing a random sequence of elementary row operations on the n-dimensional identity matrix. Samantha publicly publishes $\mathcal{B_{\text{pub}}} = \mathbf{w_1, w_2, ... , w_n}$, which is a much worse basis for $\mathbf{L}$.
+
+Using her private basis and Babai's rounding algorithm, she (approximately) solves the CVP in $\mathcal{L}$ for the vector $\mathbf{d}\in \mathbb{Z^\text{n}}$, where $\mathbf{d}$ represents the document she is signing and, particularly, is not a point on the lattice. Samantha's "signature" is the expression of the solution $\mathbf{s}$ returned by Babai in terms of $\mathcal{B_\text{pub}}$, $\mathbf{s} = a_1\mathbf{w_1} + \cdots + a_n\mathbf{w_n}$. Samantha publicly publishes the signature $d_{sig}$ = ($a_1, ... , a_n$) and the document $\mathbf{d}$.
+
+To verify that he has received a valid signature, Victor computes $\mathbf{s} = a_1\mathbf{w_1} + \cdots + a_n\mathbf{w_n}$. Then, he computes $ \| \mathbf{s} - \mathbf{d} \| $ to check that $\mathbf{s}$ is sufficiently close to $\mathbf{d}$ \cite[Chapter 7.12]{textbook}. "Sufficiently close" is often defined by a pre-determined error bound, where vectors that are at most that far away are considered "sufficiently close" and therefore valid signatures.
+
+
+\begin{remark}
+\label{rmk1}
+    One can imagine that documents may be very large pieces of data. In practice, hash functions are applied to the document vector $\mathbf{d} \in \mathbb{Z^\text{n}}$ in order to reduce its number of bits and improve efficiency. Additionally, hashing allows one to convert a document of any form, for example a text file, into a vector representation. Random bits may also be concatenated for security purposes, which will explored in Section \ref{rejs}. 
+\end{remark}
+
+Let us illustrate with an example in $\mathbb{Z}^2$. 
+
+\addtolength{\topmargin}{-1cm}
+
+
+\begin{example}
+    \label{ex1}
+    For Samantha's private good basis $\mathcal{B_\text{priv}}$, she chooses
+    \begin{align*}
+        \mathbf{v_1} = (84,58) \;\;\;\; \mathbf{v_2} = (3,-68)
+    \end{align*}
+    
+    which has a Hadamard ratio of 0.92. She creates the public key $\mathcal{B_\text{pub}}$ with vectors 
+    \begin{align*}
+        \mathbf{w_1} = (-363885,-243476) \;\;\;\; \mathbf{w_2} = (3279,2194)
+    \end{align*}
+    
+    Samantha decides to sign the document $\mathbf{d} = (123,456) \in \mathbb{Z}^2$.
+
+    She runs Babai's algorithm with $\mathcal{B_\text{priv}}$ and finds that the closest vector to $\mathbf{d}$ is
+    \begin{align*}
+        \mathbf{s} = (153,456)
+    \end{align*}
+     
+    She expresses $\mathbf{s}$ in terms of $\mathcal{B_\text{pub}}$ and publishes those coordinates as $d_{sig}$
+    \begin{align*}
+        \mathbf{s} &= 197\mathbf{w_1} + 21862\mathbf{w_2} \\
+        d_{sig} &=  (197,21862)
+    \end{align*}
+    
+
+    Victor receives $\mathcal{B_\text{pub}}$ and $d_{sig}$. He computes
+    \begin{align*}
+        \mathbf{s} &= d_{sig}\mathcal{B_\text{pub}} = 197\mathbf{w_1} + 21862\mathbf{w_2} = (153,456)
+    \end{align*}
+     Then, he verifies that $\mathbf{s}$ is close to $\mathbf{d}$ by computing $
+         \| \mathbf{s} - \mathbf{d} \| = 30$,
+     which is sufficiently close. 
+
+    We can confirm that Eve cannot produce a valid signature when she only has access to $\mathcal{B_\text{pub}}$. If Eve runs Babai using $\mathcal{B_\text{pub}}$, the resulting vector is 
+    \begin{align*}
+        \mathbf{s'} = (66657,44974)
+    \end{align*}
+    
+    This is not a good solution the approximate CVP as the distance between the two vectors is more than $80,000$ units, and Victor would flag this as a forged signature.
+
+    \end{example}
+
+\section{Transcript Analysis}
+
+Every time Samantha signs a document using Babai's closest vector algorithm, she reveals something about her private key - namely that the given document yields the given signature. Thus, storing a series of signed documents - a "transcript" - may reveal enough information to recover Samantha's private key, the good basis for the lattice. This hacking technique is called "transcript analysis," and allows Eve to forge signatures on Samantha's behalf. 
+
+Because the solution to the CVP for $\mathbf{d}$ is constructed via Babai's rounding algorithm, we know that the solution is a vertex point of a translate of the fundamental domain formed by $B_{priv}$ \cite[Chapter 7.6]{textbook}. We recall that Babai's algorithm outputs a solution $\mathbf{s}$ by rounding the coordinates of $\mathbf{d}$ in $\mathcal{B_\text{priv}} = \mathbf{v_1, ... , v_n}$
+
+\vspace{-0.4cm}
+\begin{align*}
+    \mathbf{d} &= a_1\mathbf{v_1} + \cdots + a_n\mathbf{v_n}\\
+    \mathbf{s} &= \lfloor a_1 \rceil \mathbf{v_1} + \cdots + \lfloor a_n \rceil \mathbf{v_n} \\
+    \mathbf{s-d} &= \{(\lfloor a_1 \rceil - a_1) \mathbf{v_1} + \cdots + (\lfloor a_n \rceil - a_n)\mathbf{v_n} : \frac{-1}{2} \leq \lfloor a_i \rceil - a_i \leq \frac{1}{2} \}\\
+\end{align*}
+
+
+\vspace{-0.7cm}
+Clearly, $|\lfloor a_i \rceil - a_i| \leq \frac{1}{2}$ because $\lfloor a_i \rceil$ is the rounded integer of $a_i$. We also recall that a fundamental domain $\mathcal{F}$ is a parallelopiped defined as 
+
+\vspace{-0.5cm}
+\begin{align*}
+    \mathcal{F}(\mathbf{v_1,...v_n}) = \{t_1\mathbf{v_1} + \cdots + t_n\mathbf{v_n} : 0 \leq t_i < 1, t \in \R \}
+\end{align*}
+
+
+\begin{frame}{}
+\begin{center}
+\resizebox{160}{!}{
+\definecolor{zzttqq}{rgb}{0.6,0.2,0}
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=1cm,y=1cm]
+\begin{axis}[
+ticks=none,
+x=1cm,y=1cm,
+axis lines=middle,
+ymajorgrids=false,
+xmajorgrids=false,
+xmin=-3,
+xmax=7,
+ymin=-2,
+ymax=5,]
+\clip(-3.79,-5.44) rectangle (17.67,9.18);
+\fill[line width=2pt,color=zzttqq,fill=zzttqq,fill opacity=0.10000000149011612] (0,0) -- (2,3) -- (7,3) -- (5,0) -- cycle;
+\draw [line width=2pt,color=zzttqq] (0,0)-- (2,3);
+\draw [line width=2pt,dash pattern=on 4pt off 4pt,color=zzttqq] (2,3)-- (7,3);
+\draw [line width=2pt,dash pattern=on 4pt off 4pt,color=zzttqq] (7,3)-- (5,0);
+\draw [line width=2pt,color=zzttqq] (5,0)-- (0,0);
+\draw [color=zzttqq](2.67,1.96) node[anchor=north west, scale = 2] {$ \mathcal{F}$};
+\draw (2.35,-0.38) node[anchor=north west] {$\mathbf{v_1}$};
+\draw (0.47,2.44) node[anchor=north west] {$\mathbf{v_2}$};
+\end{axis}
+
+\end{tikzpicture}
+}
+\end{center}
+\captionof{figure}{$\mathcal{F}$ spanned by $\mathbf{v_1, v_2}$}
+\end{frame} 
+
+\vspace{\baselineskip}
+Thus, it immediately follows that if we center $\mathcal{F}$ by linearly shifting the $t_i$ such that $\frac{-1}{2} < t_i < \frac{1}{2}$, we achieve $\mathbf{s - d} \in \mathcal{F^\text{cent}}$ as illustrated below. 
+
+\begin{frame}{}
+\begin{center}
+\resizebox{160}{!}{
+\definecolor{yqqqyq}{rgb}{0.5019607843137255,0,0.5019607843137255}
+\definecolor{qqttzz}{rgb}{0,0.2,0.6}
+\definecolor{zzttqq}{rgb}{0.6,0.2,0}
+\definecolor{zgtgqg}{rgb}{0.2,0.4,0}
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=1cm,y=1cm]
+\begin{axis}[
+x=1cm,y=1cm,
+axis lines=middle,
+ticks=none,
+ymajorgrids=false,
+xmajorgrids=false,
+xmin=-3.5,
+xmax=7,
+ymin=-2,
+ymax=5,
+xtick={-3,-2,...,10},
+ytick={-4,-3,...,5},]
+\clip(-3.710980978130563,-4.182101043841171) rectangle (10.41436500564632,5.441037739141995);
+\fill[line width=2pt,color=zqtgqg,fill=zgtgqg,fill opacity=0.10000000149011612] (-3.5,-1.5) -- (-1.5,1.5) -- (3.5,1.5) -- (1.5,-1.5) -- cycle;
+\draw [color=zgtgqg](-2.17,-0.26) node[anchor=north west, scale = 2] {$ \mathcal{F^{\text{cent}}}$};
+\fill[line width=2pt,color=zzttqq,fill=zzttqq,fill opacity=0.10000000149011612] (0,0) -- (2,3) -- (7,3) -- (5,0) -- cycle;
+\draw [line width=2pt,color=zzttqq] (0,0)-- (2,3);
+\draw [line width=2pt,dash pattern=on 4pt off 4pt,color=zzttqq] (2,3)-- (7,3);
+\draw [line width=2pt,dash pattern=on 4pt off 4pt,color=zzttqq] (7,3)-- (5,0);
+\draw [line width=2pt,color=zzttqq] (5,0)-- (0,0);
+\draw [->,line width=2pt,color=qqttzz] (0,0) -- (7,3);
+\draw [->,line width=2pt,color=qqttzz] (0,0) -- (4.648380344980642,2.6501958485914736);
+\draw [->,line width=2pt,color=yqqqyq] (0,0) -- (2.351619655019358,0.3498041514085264);
+\draw [color=yqqqyq](2.594741972688755,0.8203514014852356) node[anchor=north west] {$\mathbf{s - d}$};
+\draw [color=qqttzz](2.31829065334177,2.1499506040588328) node[anchor=north west] {$\mathbf{d}$};
+\draw [color=qqttzz](5.517227348642593,2.58437410588981) node[anchor=north west] {$\mathbf{s}$};
+\end{axis}
+\end{tikzpicture}
+}
+\end{center}
+\captionof{figure}{$\mathbf{s - d} \in \mathcal{F^{\text{cent}}}$}
+\end{frame} 
+
+\vspace{\baselineskip}
+
+So, Eve knows that every document and signature pair reveals a point in the centered fundamental domain. With only a few signatures, it is not clear how to reconstruct the fundamental domain. However, with a large enough transcript of signatures, finding the underlying fundamental domain becomes much more feasible.
+
+\begin{frame}{}
+\begin{center}
+\resizebox{160}{!}{
+\definecolor{yqqqyq}{rgb}{0.5019607843137255,0,0.5019607843137255}
+\definecolor{qqttzz}{rgb}{0,0.2,0.6}
+\definecolor{zzttqq}{rgb}{0.6,0.2,0}
+\definecolor{zgtgqg}{rgb}{0.2,0.4,0}
+\definecolor{qqttqq}{rgb}{0,0.2,0}
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=1cm,y=1cm]
+\begin{axis}[
+x=1cm,y=1cm,
+axis lines=middle,
+ticks=none,
+ymajorgrids=false,
+xmajorgrids=false,
+xmin=-3.5,
+xmax=5,
+ymin=-2,
+ymax=3,
+xtick={-3,-2,...,10},
+ytick={-4,-3,...,5},]
+\clip(-3.710980978130563,-4.182101043841171) rectangle (10.41436500564632,5.441037739141995);
+\fill[line width=2pt,color=zqtgqg,fill=zgtgqg,fill opacity=0.10000000149011612] (-3.5,-1.5) -- (-1.5,1.5) -- (3.5,1.5) -- (1.5,-1.5) -- cycle;
+\begin{scriptsize}
+\draw [fill=qqttqq] (-1.33367,1.20722) circle (2.5pt);
+\draw [fill=qqttqq] (-1.155881078221398,0.7538514535480079) circle (2.5pt);
+\draw [fill=qqttqq] (-0.5425043567343173,0.7538514535480079) circle (2.5pt);
+\draw [fill=qqttqq] (-1.155881078221398,0.4871659224666667) circle (2.5pt);
+\draw [fill=qqttqq] (-1.3603399853837583,-0.12621079902041804) circle (2.5pt);
+\draw [fill=qqttqq] (-1.6981416580867883,-0.410675365507182) circle (2.5pt);
+\draw [fill=qqttqq] (-1.182549631329532,-0.8729302860481734) circle (2.5pt);
+\draw [fill=qqttqq] (-0.8625269940319247,-0.481791507128873) circle (2.5pt);
+\draw [fill=qqttqq] (-1.9826062245735505,-0.6862504142912346) circle (2.5pt);
+\draw [fill=qqttqq] (-2.569314392952497,-0.9529359453725758) circle (2.5pt);
+\draw [fill=qqttqq] (-2.1515070609250655,-1.2729585826701852) circle (2.5pt);
+\draw [fill=qqttqq] (-2.1515070609250655,-0.4373439186153161) circle (2.5pt);
+\draw [fill=qqttqq] (-2.053722366195241,0.40716026314226433) circle (2.5pt);
+\draw [fill=qqttqq] (-1.6003569633569639,0.3182650861151506) circle (2.5pt);
+\draw [fill=qqttqq] (-0.6847366399776983,0.23825942679074827) circle (2.5pt);
+\draw [fill=qqttqq] (-1.5292408217352733,0.7627409712507193) circle (2.5pt);
+\draw [fill=qqttqq] (-1.013648794978017,0.22048039138532552) circle (2.5pt);
+\draw [fill=qqttqq] (-1.129212525113264,-0.3484487415882024) circle (2.5pt);
+\draw [fill=qqttqq] (-1.57368841024883,-0.8907093214535962) circle (2.5pt);
+\draw [fill=qqttqq] (-1.5914674456542526,-1.4329699013189898) circle (2.5pt);
+\draw [fill=qqttqq] (-0.6847366399776983,-1.2018424410484942) circle (2.5pt);
+\draw [fill=qqttqq] (-1.0314278303834397,-1.1840634056430714) circle (2.5pt);
+\draw [fill=qqttqq] (-0.6936261576804096,-0.8018141444264824) circle (2.5pt);
+\draw [fill=qqttqq] (0.32866837813139166,-1.0418311223996894) circle (2.5pt);
+\draw [fill=qqttqq] (-0.10691798930146279,-1.0240520869942666) circle (2.5pt);
+\draw [fill=qqttqq] (-0.17803413092315332,-0.7662560736156369) circle (2.5pt);
+\draw [fill=qqttqq] (-0.18692364862586464,-1.2996271357783193) circle (2.5pt);
+\draw [fill=qqttqq] (0.4086740374557935,-1.3085166534810306) circle (2.5pt);
+\draw [fill=qqttqq] (0.22199416569885588,-0.6684713788858118) circle (2.5pt);
+\draw [fill=qqttqq] (0.8531499225913594,-0.9884940161834213) circle (2.5pt);
+\draw [fill=qqttqq] (0.8531499225913594,-1.2285109941566283) circle (2.5pt);
+\draw [fill=qqttqq] (0.6931386039425557,-0.7484770382102142) circle (2.5pt);
+\draw [fill=qqttqq] (0.7286966747534009,-0.11732128131770667) circle (2.5pt);
+\draw [fill=qqttqq] (-0.14247606011230807,-0.22399549375024314) circle (2.5pt);
+\draw [fill=qqttqq] (-0.5602833921397399,-0.22399549375024314) circle (2.5pt);
+\draw [fill=qqttqq] (-0.30248737876111176,0.17603280287176865) circle (2.5pt);
+\draw [fill=qqttqq] (-0.2935978610584004,0.7271829004398738) circle (2.5pt);
+\draw [fill=qqttqq] (-0.8625269940319247,0.7627409712507193) circle (2.5pt);
+\draw [fill=qqttqq] (-0.6847366399776983,1.2605539626025561) circle (2.5pt);
+\draw [fill=qqttqq] (0.23977320110427852,1.1094321616564629) circle (2.5pt);
+\draw [fill=qqttqq] (0.310889342725969,0.6293982057100487) circle (2.5pt);
+\draw [fill=qqttqq] (0.2308836834015672,0.2915965330070165) circle (2.5pt);
+\draw [fill=qqttqq] (0.9509346173211838,0.6293982057100487) circle (2.5pt);
+\draw [fill=qqttqq] (0.8175918517805141,1.020536984629349) circle (2.5pt);
+\draw [fill=qqttqq] (0.7820337809696688,0.37160219233141883) circle (2.5pt);
+\draw [fill=qqttqq] (1.3954105024567496,0.37160219233141883) circle (2.5pt);
+\draw [fill=qqttqq] (1.4220790555648835,1.0027579492239262) circle (2.5pt);
+\draw [fill=qqttqq] (1.350962913943193,-0.5084600602370071) circle (2.5pt);
+\draw [fill=qqttqq] (1.884333976105872,0.07824810814194354) circle (2.5pt);
+\draw [fill=qqttqq] (1.182062077591678,0.09602714354736629) circle (2.5pt);
+\draw [fill=qqttqq] (1.1465040067808328,-0.4284544009126047) circle (2.5pt);
+\draw [fill=qqttqq] (1.3687419493486157,-1.0596101578051123) circle (2.5pt);
+\draw [fill=qqttqq] (1.830996869889604,-0.4551229540207388) circle (2.5pt);
+\draw [fill=qqttqq] (2.257693719619747,0.9849789138185036) circle (2.5pt);
+\draw [fill=qqttqq] (1.830996869889604,0.7982990420615648) circle (2.5pt);
+\draw [fill=qqttqq] (2.1865775779980567,0.5227239932775122) circle (2.5pt);
+\draw [fill=qqttqq] (2.7910647817824263,1.1449902324673082) circle (2.5pt);
+\draw [fill=qqttqq] (1.9021130115112945,1.1894378209808651) circle (2.5pt);
+\draw [fill=qqttqq] (1.6798750689435116,0.5493925463856463) circle (2.5pt);
+\draw [fill=qqttqq] (1.3420733962404816,0.7271829004398738) circle (2.5pt);
+\draw [fill=qqttqq] (1.0220507589428742,0.2915965330070165) circle (2.5pt);
+\draw [fill=qqttqq] (0.5509063206991746,0.14936424976363452) circle (2.5pt);
+\draw [fill=qqttqq] (0.41756355515850485,-0.21510597604753176) circle (2.5pt);
+\draw [fill=qqttqq] (0.32866837813139166,-0.0728736928041498) circle (2.5pt);
+\draw [fill=qqttqq] (-0.8625269940319247,0.06935859043923216) circle (2.5pt);
+\draw [fill=qqttqq] (-0.7647422993021001,-0.05509465739872706) circle (2.5pt);
+\draw [fill=qqttqq] (-1.4225666093027376,0.1582537674663459) circle (2.5pt);
+\draw [fill=qqttqq] (-1.6981416580867883,0.07824810814194354) circle (2.5pt);
+\draw [fill=qqttqq] (-0.3291559318692457,-0.33066970618277963) circle (2.5pt);
+\draw [fill=qqttqq] (-1.520351304032562,-0.410675365507182) circle (2.5pt);
+\draw [fill=qqttqq] (-1.1647705959241095,-0.6684713788858118) circle (2.5pt);
+\draw [fill=qqttqq] (-1.2181077021403772,-0.4906810248315843) circle (2.5pt);
+\draw [fill=qqttqq] (-1.858152976735592,-0.8195931798319052) circle (2.5pt);
+\draw [fill=qqttqq] (-1.6181359987623865,-1.1662843702376486) circle (2.5pt);
+\draw [fill=qqttqq] (-1.2447762552485113,-1.1929529233457827) circle (2.5pt);
+\draw [fill=qqttqq] (-1.8403739413301694,-1.2018424410484942) circle (2.5pt);
+\draw [fill=qqttqq] (-2.7737733001148577,-1.2729585826701852) circle (2.5pt);
+\draw [fill=qqttqq] (-2.275960308763024,-0.8284826975346165) circle (2.5pt);
+\draw [fill=qqttqq] (-2.711546676195878,-0.5262390956424299) circle (2.5pt);
+\draw [fill=qqttqq] (-2.400413556600982,-1.3974118305081444) circle (2.5pt);
+\draw [fill=qqttqq] (-3.1115749728178876,-1.2551795472647624) circle (2.5pt);
+\draw [fill=qqttqq] (-2.7915523355202803,-0.7662560736156369) circle (2.5pt);
+\draw [fill=qqttqq] (-2.2137336848440445,-0.15287935212855217) circle (2.5pt);
+\draw [fill=qqttqq] (-2.160396578627777,0.30937556841243924) circle (2.5pt);
+\draw [fill=qqttqq] (-1.9026005652491487,0.11380617895278904) circle (2.5pt);
+\draw [fill=qqttqq] (-1.8670424944383033,0.6293982057100487) circle (2.5pt);
+\draw [fill=qqttqq] (-1.6981416580867883,1.0116474669266378) circle (2.5pt);
+\draw [fill=qqttqq] (-1.1025439720051302,1.020536984629349) circle (2.5pt);
+\draw [fill=qqttqq] (-0.6580680868695644,1.1005426439537513) circle (2.5pt);
+\draw [fill=qqttqq] (-0.2580397902475552,1.3316701042242471) circle (2.5pt);
+\draw [fill=qqttqq] (0,1.3316701042242471) circle (2.5pt);
+\draw [fill=qqttqq] (0.7820337809696688,1.3227805865215359) circle (2.5pt);
+\draw [fill=qqttqq] (1.3065153254296364,1.3316701042242471) circle (2.5pt);
+\draw [fill=qqttqq] (0.7198071570506895,0.8338571128724103) circle (2.5pt);
+\draw [fill=qqttqq] (0.2308836834015672,0.9760893961157923) circle (2.5pt);
+\draw [fill=qqttqq] (0.17754657718529931,0.7271829004398738) circle (2.5pt);
+\draw [fill=qqttqq] (0.1153199532663201,0.38049171003413024) circle (2.5pt);
+\draw [fill=qqttqq] (0.07976188245547483,-0.04620513969601568) circle (2.5pt);
+\draw [fill=qqttqq] (0.20421513029343324,-0.4195648832098933) circle (2.5pt);
+\draw [fill=qqttqq] (0.7998128163750914,-0.3840068123990479) circle (2.5pt);
+\draw [fill=qqttqq] (0.5686853561045973,-0.552907648750564) circle (2.5pt);
+\draw [fill=qqttqq] (0.9953822058347404,-0.7218084851020801) circle (2.5pt);
+\draw [fill=qqttqq] (1.1465040067808328,-0.864040768345462) circle (2.5pt);
+\draw [fill=qqttqq] (1.715433139754357,-0.5795762018586981) circle (2.5pt);
+\draw [fill=qqttqq] (1.5109742325919966,-0.7662560736156369) circle (2.5pt);
+\draw [fill=qqttqq] (1.6709855512408003,-0.8551512506427507) circle (2.5pt);
+\draw [fill=qqttqq] (1.270957254618791,-1.1573948525349373) circle (2.5pt);
+\draw [fill=qqttqq] (1.3154048431323477,-1.3085166534810306) circle (2.5pt);
+\draw [fill=qqttqq] (1.0842773828618535,-1.3085166534810306) circle (2.5pt);
+\draw [fill=qqttqq] (0.5864643915100198,-1.0329416046969782) circle (2.5pt);
+\draw [fill=qqttqq] (0.3820054843476596,-0.7395875205075028) circle (2.5pt);
+\draw [fill=qqttqq] (0.22199416569885588,-0.8462617329400393) circle (2.5pt);
+\draw [fill=qqttqq] (0.21310464799614456,-1.2285109941566283) circle (2.5pt);
+\draw [fill=qqttqq] (-0.3291559318692457,-0.9973835338861325) circle (2.5pt);
+\draw [fill=qqttqq] (-0.338045449571957,-0.5440181310478526) circle (2.5pt);
+\draw [fill=qqttqq] (-0.9336431356536151,-0.6862504142912346) circle (2.5pt);
+\draw [fill=qqttqq] (-0.6580680868695644,-0.9440464276698644) circle (2.5pt);
+\draw [fill=qqttqq] (-0.37360352038280226,-0.6773608965885232) circle (2.5pt);
+\draw [fill=qqttqq] (0.6398014977262877,0.47827640476395533) circle (2.5pt);
+\draw [fill=qqttqq] (-0.08913895389604017,0.12269569665550041) circle (2.5pt);
+\draw [fill=qqttqq] (-0.3291559318692457,0.4338288162503985) circle (2.5pt);
+\draw [fill=qqttqq] (-0.702515675383121,0.6293982057100487) circle (2.5pt);
+\draw [fill=qqttqq] (-0.8625269940319247,0.5049449578720895) circle (2.5pt);
+\draw [fill=qqttqq] (-0.42694062659907017,0.6471772411154714) circle (2.5pt);
+\draw [fill=qqttqq] (-0.36471400268009097,0.9405313253049468) circle (2.5pt);
+\draw [fill=qqttqq] (-0.13358654240959675,1.136100714764597) circle (2.5pt);
+\draw [fill=qqttqq] (0,1.136100714764597) circle (2.5pt);
+\draw [fill=qqttqq] (0,0.8071885597642762) circle (2.5pt);
+\draw [fill=qqttqq] (0.5597958384018858,1.305001551116113) circle (2.5pt);
+\draw [fill=qqttqq] (0.5,1) circle (2.5pt);
+\draw [fill=qqttqq] (1.208730630699812,1.1894378209808651) circle (2.5pt);
+\draw [fill=qqttqq] (1.1465040067808328,0.922752289899524) circle (2.5pt);
+\draw [fill=qqttqq] (1.2620677369160798,0.5671715817910691) circle (2.5pt);
+\draw [fill=qqttqq] (1.768770245970625,0.38049171003413024) circle (2.5pt);
+\draw [fill=qqttqq] (1.6265379627272438,0.34493363922328474) circle (2.5pt);
+\draw [fill=qqttqq] (1.6265379627272438,0.1582537674663459) circle (2.5pt);
+\draw [fill=qqttqq] (1.3154048431323477,0.12269569665550041) circle (2.5pt);
+\draw [fill=qqttqq] (1.3331838785377703,-0.05509465739872706) circle (2.5pt);
+\draw [fill=qqttqq] (1.6087589273218212,-0.20621645834482039) circle (2.5pt);
+\draw [fill=qqttqq] (1.8221073521868927,-0.2506640468583773) circle (2.5pt);
+\draw [fill=qqttqq] (2.1243509540790773,0.18492232057448002) circle (2.5pt);
+\draw [fill=qqttqq] (2.0710138478628095,0.4338288162503985) circle (2.5pt);
+\draw [fill=qqttqq] (2.1065719186736547,0.7538514535480079) circle (2.5pt);
+\draw [fill=qqttqq] (2.675501051647179,0.8960837367913899) circle (2.5pt);
+\draw [fill=qqttqq] (-0.43583014430178146,0.20270135597990277) circle (2.5pt);
+\draw [fill=qqttqq] (-1.2803343260593565,-1.3618537596972988) circle (2.5pt);
+\draw [fill=qqttqq] (-0.7114051930858323,-1.3707432774000103) circle (2.5pt);
+\end{scriptsize}
+\end{axis}
+\end{tikzpicture}
+}
+\end{center}
+\captionof{figure}{A long transcript reveals many points contained in $ \mathcal{F^{\text{cent}}}$}
+\end{frame} 
+
+\vspace{\baselineskip}
+
+We omit a rigorous algorithm that can recover the private basis given many points in its centered $\mathcal{F}$. Instead, we include a brief synopsis of a polynomial time algorithm to do so given by Nguyen and Regev \cite{nguyen-regev}. The algorithm makes an idealized assumption about the uniformity of the distribution of signatures. Namely, it assumes that when polynomially many random documents are signed using a basis $\mathcal{B^{\text{priv}}}$, the vectors $\mathbf{s_i - d_i}$ are independent and uniformly distributed over the fundamental domain spanned by $\mathcal{B^{\text{priv}}}$. The algorithm solves what they refer to as the Hidden Parallelopiped Problem by approximating the covariance matrix of the distribution of $\mathbf{s_i - d_i}$. Then, they transform the parallelopided to a hypercube. Approximating the vectors of the fundamental domain is achieved by solving how the parallelopiped is transformed to a hypercube, which is done through gradient descent. Nguyen and Osage \cite{nguyen-regev} found that they could recover the fundamental domain in dimension 200 with a sample of 200,000 GGH signatures. Further, they found that if the closest vector problem is approximately solved using Babai's closest plane algorithm \cite[Exercise 7.53]{textbook} instead of the rounding algorithm, $\mathcal{F}$ could be recovered with as few as 20,000 signatures. They also remark that finding the parallelopided given a number of signatures takes significantly less time than generating that number of signatures, indicating that this algorithm is a viable attack \cite{nguyen-regev}. 
+
+Though several remedies to transcript analysis have been proposed, this remainder of this paper will explore rejection sampling as described in \cite{presentation} and \cite{lubshevky}. 
+
+\section{Rejection Sampling}
+\label{rejs}
+
+ A transcript is a record of signatures from one signer, meaning all of the signatures were generated with the same private key, $\mathcal{B^{\text{priv}}}$. In a real signature scheme, though, we realize there are multiple signers. Samantha and her colleagues Sarah and Sally all choose different private bases to generate signatures with, and each basis yields a different fundamental domain. A remedy to transcript analysis builds on this fact.
+
+\begin{figure}[H]
+  \begin{subfigure}[b]{.3\linewidth}
+    \centering
+    \definecolor{yqqqyq}{rgb}{0.5019607843137255,0,0.5019607843137255}
+    \definecolor{qqttzz}{rgb}{0,0.2,0.6}
+    \definecolor{zzttqq}{rgb}{0.6,0.2,0}
+    \definecolor{zgtgqg}{rgb}{0.2,0.4,0}
+    \definecolor{qqttqq}{rgb}{0,0.2,0}
+    \begin{tikzpicture}[scale=0.4]
+        \begin{axis}[x=1cm,y=1cm,axis lines=middle,
+            ticks=none,
+            ymajorgrids=false,
+            xmajorgrids=false,
+            xmin=-3.5,
+            xmax=5,
+            ymin=-2,
+            ymax=3,
+            xtick={-3,-2,...,10},
+            ytick={-4,-3,...,5},]
+            \clip(-3.710980978130563,-4.182101043841171) rectangle (10.41436500564632,5.441037739141995);
+            \fill[line width=2pt,color=zgtgqg,fill=zgtgqg,fill opacity=0.10000000149011612] (-3.5,-1.5) -- (-1.5,1.5) -- (3.5,1.5) -- (1.5,-1.5) -- cycle;
+        \end{axis}
+    \end{tikzpicture}
+    %\caption{Samantha's $\mathcal{F}$}
+    \label{subfig:matrix}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{.3\linewidth}
+    \centering
+    \begin{tikzpicture}[scale=.4]
+    \definecolor{red}{rgb}{0.9,0.2,0}
+      \begin{axis}[ x=1cm,y=1cm,axis lines=middle,
+            ticks=none,
+            ymajorgrids=false,
+            xmajorgrids=false,
+            xmin=-3.5,
+            xmax=3,
+            ymin=-2,
+            ymax=3,
+            xtick={-3,-2,...,10},
+            ytick={-4,-3,...,5},]
+            \clip(-3.710980978130563,-4.182101043841171) rectangle (10.41436500564632,5.441037739141995);
+            \fill[line width=2pt,color=red,fill=red,fill opacity=0.10000000149011612] (-1.0,2.0) -- (2.0,2.0) -- (1.0,-2.0) -- (-2.0,-2.0) -- cycle;
+        \end{axis}
+    \end{tikzpicture}
+    %\caption{Sally's $\mathcal{F}$}
+    \label{subfig:smallk}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{.3\linewidth}
+    \centering
+    \begin{tikzpicture}[scale=.4]
+    \definecolor{blue}{rgb}{0,0.2,0.8}
+      \begin{axis}[ x=1cm,y=1cm,axis lines=middle,
+            ticks=none,
+            ymajorgrids=false,
+            xmajorgrids=false,
+            xmin=-3.5,
+            xmax=5,
+            ymin=-3,
+            ymax=3,
+            xtick={-3,-2,...,10},
+            ytick={-4,-3,...,5},]
+            \clip(-3.710980978130563,-4.182101043841171) rectangle (10.41436500564632,5.441037739141995);
+            \fill[line width=2pt,color=blue,fill=blue,fill opacity=0.10000000149011612] (-1.5,0.5) -- (2.0,3.0) -- (1.5,-0.5) -- (-2.0,-3.0) -- cycle;
+        \end{axis}
+    \end{tikzpicture}
+    %\caption{Sarah's $\mathcal{F}$}
+    \label{subfig:largek}
+  \end{subfigure}
+  \caption{Different $\mathcal{F}$ spanned by Samantha's, Sally's, and Sarah's unique $\mathcal{B^{\text{priv}}}$ in dimension 2}
+  \label{fig:first}
+\end{figure}
+
+
+Rejection sampling applied to GGH works by choosing a region that is common to all fundamental domains of the dimension $n$. Then, the signing process is modified to require that a signature satisfies $\mathbf{s} - \mathbf{d}$ falling into the common region. Hence, for a sample of signatures, those that do not meet the condition $\mathbf{s - d} \in \mathcal{F^{\text{common}}}$ are rejected.
+
+\begin{frame}{}
+\begin{center}
+\resizebox{130}{!}{
+\definecolor{zgtgqg}{rgb}{0.2,0.4,0}
+\definecolor{red}{rgb}{0.9,0.2,0}
+\definecolor{blue}{rgb}{0,0.2,0.8}
+\definecolor{pink}{rgb}{0.7,0.0,0.0}
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=1cm,y=1cm]
+\begin{axis}[
+x=1cm,y=1cm,
+axis lines=middle,
+ticks=none,
+ymajorgrids=false,
+xmajorgrids=false,
+xmin=-3.5,
+xmax=4,
+ymin=-3,
+ymax=3,
+xtick={-3,-2,...,10},
+ytick={-4,-3,...,5},]
+\clip(-3.710980978130563,-4.182101043841171) rectangle (10.41436500564632,5.441037739141995);
+
+\fill[line width=2pt,color=zgtgqg,fill=zgtgqg,fill opacity=0.10000000149011612] (-3.5,-1.5) -- (-1.5,1.5) -- (3.5,1.5) -- (1.5,-1.5) -- cycle;
+
+\fill[line width=2pt,color=red,fill=red,fill opacity=0.10000000149011612] (-1.0,2.0) -- (2.0,2.0) -- (1.0,-2.0) -- (-2.0,-2.0) -- cycle;
+
+\fill[line width=2pt,color=blue,fill=blue,fill opacity=0.10000000149011612] (-1.5,0.5) -- (2.0,3.0) -- (1.5,-0.5) -- (-2.0,-3.0) -- cycle;
+
+\fill[line width=2pt,color=pink,fill=pink,fill opacity=0.80000000149011612] (-0.90,0.90) -- (0.90,0.90) -- (0.90,-0.90) -- (-0.90,-0.90) -- cycle;
+
+\end{axis}
+\end{tikzpicture}
+}
+\end{center}
+\captionof{figure}{Common region between Samantha, Sally, and Sarah's $\mathcal{F}$s}
+\end{frame} 
+
+\vspace{\baselineskip}
+This requirement precludes transcription analysis because, regardless of how long a transcript Eve has, the distribution of signatures is independent of the private basis. Every point $\mathbf{s} - \mathbf{d}$ falls into the common region, rendering it useless for recovering a specific fundamental domain. 
+
+One may wonder how Samantha can generate several signatures on the same document, using only one private basis, until she finds one that meets the non-rejection criteria. In practice, this is easily achieved when one considers remark \ref{rmk1} above. Samantha is really signing a hash of the document vector that is concatenated with random bits. To generate another signature, Samantha just re-hashes the document with new random bits. 
+
+
+\vspace{\baselineskip}
+We now look at pseudocode for how I (extremely naively) built rejection sampling into the GGH signing scheme. I'll preface by saying I tried but could not figure out how to write my own hashing function so I used Python's built in hashlib with SHA-512. Second, this implementation is not optimized and it is necessary to choose low dimensions and a very relaxed bound for the common region (at least for dimensions > 2) in order for it to return in a reasonable amount of time. 
+
+\begin{enumerate}
+    \item Define the bound $B$ for the region shared by all $\mathcal{F}$ in the dimension $n$. 
+    \begin{enumerate}
+        \item In practice, one would need to find the intersection of the fundamental domains spanned by all possible private bases in that dimension. Then, one would need to find the biggest n-dimensional box that would fit inside and set $B$ to be the side length.
+        \item In my implementation, I omitted this step and just chose a relatively small number for $B$.
+    \end{enumerate}
+    \item Hash the document.
+    \begin{enumerate}
+        \item Assuming the document is in n-dimensional vector form, convert each element to a string and concatenate them together. 
+        \item Randomize the string by randomly generating a large number and concatenate it to the document string.
+        \item Hash the randomized document string, using SHA-512 or other hashing function. This will return a fixed length string of hexidecimals.
+    \end{enumerate}
+    \item Turn the hash back into a vector.
+    \begin{enumerate}
+        \item Decide how many bytes each entry of the vector should be. For example, 1 byte allows for values 0 to 255. 2 bytes allows 0 to 65,535, etc. 2 hexidecimal characters corresponds to 1 byte, so take the number of bytes you want and multiply it by 2. Call this $m$.
+        \item Check whether the length of the hash is greater than $m*n$. NOTE: I almost always chose to create a vector whose entries are 2 bytes (representing numbers 0 to 65,535). It doesn't make sense to create these relatively small entries if working at much higher dimensions, but it worked best for debugging. 
+        \begin{enumerate}
+            \item If hash is longer, truncate the hash to length $m*n$
+            \item If hash is shorter, calculate the difference between $m*n$ and hash length and generate a random sequence of that many hexidecimal characters. Concatenate the random sequence to the hash.
+        \end{enumerate}
+        \item Turn the hash into a vector by slicing the hash into sets of $m$ characters, converting the characters to integers, and inserting them into a list.
+    \end{enumerate}
+    \item Generate a signature $\mathbf{s}$ for the randomized and hashed document vector $\mathbf{d_{\text{hash}}}$ by using Babai's algorithm, as outlined in \ref{sec1}.
+    \item Check whether $\mathbf{s - d_{\text{hash}}}$ falls into the common region defined by $B$ (step 1).
+    \begin{enumerate}
+        \item For each $x_i$ in $\mathbf{s - d_{\text{hash}}}$, check that it satisfies $\frac{-1}{2}B \leq x_i \leq \frac{1}{2}B$.
+        \begin{enumerate}
+            \item If any $x_i$ falls out of this range, reject the signature. Repeat steps 2-5 to create a new random hashed document and try again.
+        \end{enumerate}
+    \end{enumerate}
+    \item Once you find a signature that satisfies $\mathbf{s - d_{\text{hash}}}$ falling into the common region, publish $\mathbf{s}$.
+\end{enumerate}
+
+\vspace{\baselineskip}
+However, rejection sampling has an added cost as described by \cite{lubshevky}. Because the volume of the common region is likely very small compared to the volume of the fundamental domain, it is very impractical and slow to find signatures that meet the condition. For example, CoCalc often needed to try thousands of signatures before finding a valid one in dimension 2.
+It would often max out on CPU before finding a signature that worked in dimensions greater than 4. This is definitely also because of my naive implementation, but it shows how relying on such a specific condition is inefficient as the dimensions grow.
+
+Many better ways to implement rejection sampling such that the signature distribution does not reveal information about the private key but are more practical have been published, including in \cite{lubshevky} and \cite{betterschemes}.
+
+Lattice-based cryptosystems and signature schemes are promising for continuing to be secure in a quantum computer setting, but there is still lots to be done to determine the best way to implement them. 
+
+%%%%%%%%%%%%%%%%%%%
+\bibliographystyle{abbrv}
+\bibliography{final}
+
+\end{document}
+
+
+
+
